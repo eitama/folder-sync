@@ -14,9 +14,9 @@ class Concurrency(BaseModel):
     max_workers: int = 4
 
 class Client(BaseModel):
-    dest_address: str = ""
+    dest_address: str = "127.0.0.1:8000"
 
 class Configuration(BaseModel):
-    folders: Dict[str, TrackingFolder] = {} # name -> TrackingFolder
+    folders: Dict[str, TrackingFolder] = {"Example": TrackingFolder(name="Example", base_path="D:\\Example")} # name -> TrackingFolder
     concurrency: Concurrency = Concurrency()
     client: Client = Field(default_factory=Client)
