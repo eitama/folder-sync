@@ -7,31 +7,28 @@ from models.config import Client
 from models.data import Folder
 from models.file_ops import Delete
 
-client = httpx.AsyncClient(timeout=120)
+timeout = httpx.Timeout(120.0, connect=5)
+client = httpx.AsyncClient(timeout=timeout)
 files_endpoint = 'files'
 
-MAX_CONCURRENT_UPLOADS = 10
+MAX_CONCURRENT_UPLOADS = 3
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_UPLOADS)
 
 async def upload_file(relative_path: str, local_full_path: str, target_url: str):
-    # Wait to acquire the semaphore
     async with semaphore:
         with open(local_full_path, 'rb') as f:
             files = {'file': (relative_path, f, 'application/octet-stream')}
             try:
                 response = await client.post(target_url, files=files)
-                print(f"{relative_path} uploaded with status {response.status_code}")
             except httpx.HTTPStatusError as e:
                 print(f"Failed to upload {relative_path}: {e}")
 
 async def upload_all_files(base_path: str, files_to_copy: set[str], target_address: str, name: str):
-    # Create upload tasks for each file path
     target_url = build_base_url(target_address=target_address, path=f"files/{name}/upload")
     tasks = [
         upload_file(relative_path, os.path.join(base_path, relative_path), target_url)
         for relative_path in files_to_copy
     ]
-    # Wait for all uploads to complete
     await asyncio.gather(*tasks)
 
 async def delete_all_files(base_path: str, old_files_to_delete: set[str], target_address: str, name: str):

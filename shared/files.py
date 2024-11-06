@@ -94,8 +94,6 @@ class FileHandler():
         return files_with_timestamps
     
     def get_folder_metadata(self, name: str) -> Folder:
-        print("Get folder metadata")
-        print(self.config_dc.get().model_dump_json())
         if not name in self.config_dc.get().folders.keys():
             raise FileNotFoundError(f"{name} not configured in config.json")
         

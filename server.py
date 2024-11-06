@@ -22,7 +22,6 @@ async def files(name: str):
 
 @app.post("/files/{name}/upload")
 def upload(name: str, request: Request, file: UploadFile = File(...)):
-    print(file.filename)
     base_path = get_config_dc().get().folders[name].base_path
 
     try:
@@ -44,11 +43,8 @@ def upload(name: str, request: Request, file: UploadFile = File(...)):
 def delete(name: str, request_body: Delete):
     base_path = get_config_dc().get().folders[name].base_path
     for file in request_body.files_to_delete:
-        print(f"Deleting: {base_path} + {file}")
         os.remove(os.path.join(base_path, file))
     return {"message": f"Successfully delete files."}
-
-print(get_config_dc().get().model_dump_json())
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,15 +1,17 @@
 import os
-from nicegui import ui, run
+import threading
+from nicegui import ui, run, app
 from nicegui.elements.card import Card
 from nicegui.elements.button import Button
 from nicegui.elements.spinner import Spinner
-from typing import Any, Dict, List
+from typing import Dict
 import asyncio
 from dataclasses import dataclass
 from client.http_client import get_target_files_state, upload_all_files, delete_all_files
 from client.storage import get_config_dc, get_data_dc
 from models.config import TrackingFolder
 from shared.files import FileHandler
+from shared.systray import init_systray_icon
 
 @dataclass
 class FolderRow():
@@ -18,6 +20,8 @@ class FolderRow():
     deleteButton: Button
     spinner: Spinner
 
+communication_queue = asyncio.Queue()
+systray_init_done = False
 dark = ui.dark_mode(True)
 folder_rows: Dict[str, FolderRow] = {}
 input_name = None
@@ -64,24 +68,23 @@ async def sync_folder(folder: TrackingFolder):
     folder_rows[folder.uuid].deleteButton.disable()
     folder_rows[folder.uuid].spinner.set_visibility(True)
 
-    local_folder_state = await run.cpu_bound(fh.get_folder_metadata, folder.name)
-    target_folder_state = await get_target_files_state(client.dest_address, folder.name)
+    try:
+        local_folder_state = await run.cpu_bound(fh.get_folder_metadata, folder.name)
+        target_folder_state = await get_target_files_state(client.dest_address, folder.name)
 
-    # -----
-    new_files_to_copy = set(local_folder_state.files.keys()) - set(target_folder_state.files.keys())
-    old_files_to_delete = set(set(target_folder_state.files.keys() - local_folder_state.files.keys()))
-    
-    changed_files_to_copy = {
-        key for key in local_folder_state.files.keys() & target_folder_state.files.keys()
-        if local_folder_state.files[key].md5 != target_folder_state.files[key].md5
-    }
-    
-    files_to_copy = new_files_to_copy.union(changed_files_to_copy)
-    # await run.cpu_bound(upload_all_files, folder.base_path, files_to_copy, client.dest_address, folder.name)
-    await upload_all_files(folder.base_path, files_to_copy, client.dest_address, folder.name)
-    await delete_all_files(folder.base_path, old_files_to_delete, client.dest_address, folder.name)
-    # -----
-    # await upload_file("test.exe", "d:/D.exe", "http://127.0.0.1:8000/files/test")
+        new_files_to_copy = set(local_folder_state.files.keys()) - set(target_folder_state.files.keys())
+        old_files_to_delete = set(set(target_folder_state.files.keys() - local_folder_state.files.keys()))
+        
+        changed_files_to_copy = {
+            key for key in local_folder_state.files.keys() & target_folder_state.files.keys()
+            if local_folder_state.files[key].md5 != target_folder_state.files[key].md5
+        }
+        
+        files_to_copy = new_files_to_copy.union(changed_files_to_copy)
+        await upload_all_files(folder.base_path, files_to_copy, client.dest_address, folder.name)
+        await delete_all_files(folder.base_path, old_files_to_delete, client.dest_address, folder.name)
+    except:
+        pass
 
     folder_rows[folder.uuid].syncButton.enable()
     folder_rows[folder.uuid].deleteButton.enable()
@@ -132,6 +135,30 @@ with folders_panel:
         add_folder_button = ui.button(text="Add Folder", on_click=lambda: add_folder(TrackingFolder(name=input_name.value, base_path=input_base_path.value)))
         add_folder_button.disable()
 
-asyncio.run(add_saved_folders())
+def handle_exit():
+    app.shutdown()
 
-ui.run()
+async def handle_queue_messages():
+    while True:
+        try:
+            event = await communication_queue.get()
+            print(event)
+            if event == "Exit":
+               handle_exit()
+        except asyncio.QueueEmpty:
+            print("Sleeping")
+            await asyncio.sleep(5)
+
+def add_tray_icon():
+    global systray_init_done
+    if not systray_init_done:
+        systray_init_done = True
+        tray_thread = threading.Thread(target=init_systray_icon, args=(communication_queue,), daemon=True)
+        tray_thread.start()
+
+ui.timer(0.1, handle_queue_messages, once = True)
+ui.timer(0.5, add_tray_icon, once = True)
+
+if __name__ in {'__mp_main__', '__main__'}:
+    asyncio.run(add_saved_folders())
+    ui.run(show=False)
