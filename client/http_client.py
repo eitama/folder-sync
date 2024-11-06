@@ -7,7 +7,7 @@ from models.config import Client
 from models.data import Folder
 from models.file_ops import Delete
 
-timeout = httpx.Timeout(120.0, connect=5)
+timeout = httpx.Timeout(240.0, connect=5)
 client = httpx.AsyncClient(timeout=timeout)
 files_endpoint = 'files'
 
@@ -41,7 +41,8 @@ async def delete_all_files(base_path: str, old_files_to_delete: set[str], target
 
 async def get_target_files_state(target_address: str, name: str) -> Folder:
     url = build_base_url(target_address=target_address, path=f"files/{name}")
-    r = await client.get(url)
+    t = httpx.Timeout(500.0, connect=5)
+    r = await client.get(url, timeout=t)
     r.raise_for_status()
     return Folder.model_validate(r.json())
 

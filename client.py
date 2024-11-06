@@ -161,4 +161,4 @@ ui.timer(0.5, add_tray_icon, once = True)
 
 if __name__ in {'__mp_main__', '__main__'}:
     asyncio.run(add_saved_folders())
-    ui.run(show=False)
+    ui.run(show=False, reload=False)
