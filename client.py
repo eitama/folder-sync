@@ -110,12 +110,13 @@ async def sync_folder(folder: TrackingFolder):
         files_to_copy = new_files_to_copy.union(changed_files_to_copy)
         folder_rows[folder.uuid].status_label.set_text(f"Uploading 1/{len(files_to_copy)}")
         tasks = []
-        upload_task = upload_all_files(folder.base_path, files_to_copy, client.dest_address, folder.name, queue)
-        delete_task = delete_all_files(folder.base_path, old_files_to_delete, client.dest_address, folder.name)
-        track_task = track_upload_status(queue, len(files_to_copy), folder)
+        
         if len(files_to_copy) > 0:
+            upload_task = upload_all_files(folder.base_path, files_to_copy, client.dest_address, folder.name, queue)
+            track_task = track_upload_status(queue, len(files_to_copy), folder)
             tasks.extend([upload_task, track_task])
         if len(old_files_to_delete) > 0:
+            delete_task = delete_all_files(folder.base_path, old_files_to_delete, client.dest_address, folder.name)
             tasks.append(delete_task)
         await asyncio.gather(*tasks)
         folder_rows[folder.uuid].status_label.set_text("Idle")
