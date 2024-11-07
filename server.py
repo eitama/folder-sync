@@ -23,7 +23,7 @@ async def files(name: str):
 @app.post("/files/{name}/upload")
 def upload(name: str, request: Request, file: UploadFile = File(...)):
     base_path = get_config_dc().get().folders[name].base_path
-
+    print(f"Upload request for: {file.filename}")
     try:
         full_path = os.path.join(base_path, file.filename)
         dir_path = os.path.dirname(full_path)
@@ -36,7 +36,6 @@ def upload(name: str, request: Request, file: UploadFile = File(...)):
         raise UnicornException(name=name)
     finally:
         file.file.close()
-
     return {"message": f"Successfully uploaded {file.filename}"}
 
 @app.post("/files/{name}/delete")
