@@ -18,6 +18,7 @@ async def debug_exception_handler(request: Request, exc: Exception):
 
 @app.get("/files/{name}")
 async def files(name: str):
+    print(f"Get {name}")
     return fh.get_folder_metadata(name)
 
 @app.post("/files/{name}/upload")

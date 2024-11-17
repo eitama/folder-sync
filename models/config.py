@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 from uuid import uuid4
 from pydantic import BaseModel, Field
 
@@ -15,6 +15,7 @@ class Concurrency(BaseModel):
 
 class Client(BaseModel):
     dest_address: str = "127.0.0.1:8000"
+    mac_address: Optional[str] = None
 
 class Configuration(BaseModel):
     folders: Dict[str, TrackingFolder] = {"Example": TrackingFolder(name="Example", base_path="D:\\Example")} # name -> TrackingFolder

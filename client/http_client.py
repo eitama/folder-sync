@@ -31,6 +31,7 @@ async def upload_file(relative_path: str, local_full_path: str, target_url: str,
             files = {'file': (relative_path, f, 'application/octet-stream')}
             try:
                 response = await client.post(target_url, files=files)
+                print(f"Got response: {response.status_code}")
                 if response.status_code == 200:
                     await queue.put(UploadResult(UploadResultEnum.SUCCESS, relative_path))
                 else:
@@ -50,7 +51,8 @@ async def delete_all_files(base_path: str, old_files_to_delete: set[str], target
     target_url = build_base_url(target_address=target_address, path=f"files/{name}/delete")
     delete_body = Delete(files_to_delete=list(old_files_to_delete))
     try:
-        _ = await client.post(target_url, json=delete_body.model_dump())
+        r = await client.post(target_url, json=delete_body.model_dump())
+        print(f"Got response: {r.status_code}")
     except httpx.HTTPStatusError as e:
         print(f"Failed to delete files: {e}")
 
@@ -59,6 +61,7 @@ async def get_target_files_state(target_address: str, name: str) -> Folder:
     t = httpx.Timeout(500.0, connect=5)
     r = await client.get(url, timeout=t)
     r.raise_for_status()
+    print(f"Got response: {r.status_code}")
     return Folder.model_validate(r.json())
 
 def build_base_url(target_address: str, path: str):

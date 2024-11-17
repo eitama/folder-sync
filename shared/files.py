@@ -96,11 +96,12 @@ class FileHandler():
     def get_folder_metadata(self, name: str) -> Folder:
         if not name in self.config_dc.get().folders.keys():
             raise FileNotFoundError(f"{name} not configured in config.json")
-        
+        print("Get Folder Metadata - Calculating")
         base_path = self.config_dc.get().folders.get(name).base_path
         folder = self.get_previous_folder_data(name=name, base_path=base_path)
         fresh_folder_data = self.consolidate_folder_data(folder=folder)
         self.update_folder_data(fresh_folder_data)
+        print("Get Folder Metadata - Done")
         return fresh_folder_data
 
     def get_previous_folder_data(self, name: str, base_path: str) -> Folder:
